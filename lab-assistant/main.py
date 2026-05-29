@@ -1,4 +1,5 @@
 import base64
+import os
 import queue
 import random
 import threading
@@ -14,9 +15,12 @@ from reachy_mini.motion.recorded_move import RecordedMoves
 from reachy_mini.utils import create_head_pose
 
 # ── Endpoints (see slides 19–21) ─────────────────────────────────────────────
-OMNI_BASE  = "http://localhost:8010/v1"          # Nemotron Omni (LLM) — port-forwarded
-OMNI_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"
-TTS_URL    = "http://localhost:8002/speak"        # Qwen3-TTS
+# Override via env vars so you can point at port-forwarded localhost OR a public
+# tunnel URL (e.g. a cloudflared https URL) without editing code:
+#   OMNI_BASE=https://xxxx.trycloudflare.com/v1  TTS_URL=https://yyyy.trycloudflare.com/speak  python main.py
+OMNI_BASE  = os.environ.get("OMNI_BASE", "http://localhost:8010/v1")   # Nemotron Omni (LLM)
+OMNI_MODEL = os.environ.get("OMNI_MODEL", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning")
+TTS_URL    = os.environ.get("TTS_URL", "http://localhost:8002/speak")  # Qwen3-TTS
 VOICE      = ("Calm, clear, friendly lab assistant. Measured, reassuring pace, "
               "speaks precisely like a careful demonstrator.")
 
