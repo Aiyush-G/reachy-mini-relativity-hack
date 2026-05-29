@@ -1,0 +1,12 @@
+protocol: "Make a cup of tea"
+steps:
+  - say: "Place a mug on the bench in front of me."
+    verify: mug_present
+  - say: "Add one teabag to the mug."
+  - say: "Carefully pour hot water until the mug is about three-quarters full."
+    hazard: "Hot water. Pour slowly."
+  - say: "Now we let it steep."
+    timer_seconds: 30        # represents a 3-minute steep; shortened for the demo
+  - say: "Remove the teabag."
+  - say: "Add milk to taste."
+  - say: "Give it a stir. Your tea is ready. Protocol complete."
