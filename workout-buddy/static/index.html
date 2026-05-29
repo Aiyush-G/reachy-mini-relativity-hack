@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8"><title>Workout Buddy</title>
+<style>
+  body { font: 18px -apple-system, system-ui; background:#0f1014; color:#f5f6f8; padding:32px; }
+  #ptt { width:100%; padding:32px; font-size:24px; font-weight:700;
+         background:#1b1d24; color:#fff; border:none; border-radius:14px; cursor:pointer; }
+  #ptt.recording { background:#DB3328; }
+  ul { list-style:none; padding:0; max-height:60vh; overflow:auto; }
+  li { padding:10px 0; border-bottom:1px solid #2a2e3f; }
+</style>
+<button id="ptt">Hold SPACE to talk</button>
+<ul id="log"></ul>
+<script>
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) alert("No Web Speech API — open this page in Chrome on macOS.");
+const rec = new SR();
+rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
+
+let transcript = "", listening = false, busy = false, resolveEnd = null;
+rec.onresult = (e) => {
+  transcript = "";
+  for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+  ptt.textContent = "🎤 " + transcript;
+};
+rec.onerror = (e) => console.warn("speech error:", e.error);
+rec.onend   = () => { if (resolveEnd) { resolveEnd(); resolveEnd = null; } };
+
+function start() {
+  if (busy || listening) return;
+  transcript = ""; listening = true;
+  ptt.classList.add("recording"); ptt.textContent = "🎤 listening…";
+  try { rec.start(); } catch (e) { listening = false; }
+}
+async function stop() {
+  if (!listening) return;
+  listening = false; busy = true;
+  ptt.classList.remove("recording"); ptt.textContent = "🤔 thinking…";
+  // Wait for `onend` — that's when the final transcript is guaranteed in.
+  await new Promise(resolve => {
+    resolveEnd = resolve;
+    try { rec.stop(); } catch (e) { resolve(); }
+    setTimeout(() => { if (resolveEnd) { resolveEnd(); resolveEnd = null; } }, 1500);
+  });
+  const text = transcript.trim();
+  const r = await fetch("/chat", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ text }),
+  }).then(r => r.json());
+  const li = document.createElement("li");
+  li.innerHTML = "<b>you:</b> " + (text || "(silent)") +
+                 "<br><b>🤖:</b> " + (r.reply || "");
+  document.getElementById("log").appendChild(li);
+  if (r.audio_b64) await new Audio("data:audio/wav;base64," + r.audio_b64).play();
+  busy = false; ptt.textContent = "Hold SPACE to talk";
+}
+addEventListener("keydown", e => { if (e.code==="Space") { e.preventDefault(); start(); }});
+addEventListener("keyup",   e => { if (e.code==="Space") { e.preventDefault(); stop(); }});
+ptt.addEventListener("mousedown", start);
+ptt.addEventListener("mouseup",   stop);
+</script>
